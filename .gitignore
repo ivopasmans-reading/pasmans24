@@ -153,6 +153,7 @@ cython_debug/
 
 # Don't commit results
 dpr_data/
+data/
 
 # Generated when running QG model
 dapper/mods/QG/f90/prms_*\.txt
