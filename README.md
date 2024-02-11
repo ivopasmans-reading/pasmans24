@@ -10,6 +10,10 @@
 
 <img src="/docs/imgs/logo_wtxt.png" align="left" width="250"/>
 
+This repository is a fork of the DA environment [DAPPER](https://github.com/nansencenter/DAPPER.git). No endorsement from the DAPPER authors for the changes made here is assumed. Code supporting the manuscript  "Tailoring data assimilation to discontinuous Galerkin models" can be found in branch "pasmans24". 
+
+## DAPPER 
+
 DAPPER is a set of templates for **benchmarking** the performance of
 **data assimilation** (DA) methods.
 The tests provide experimental support and guidance for
