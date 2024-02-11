@@ -8,7 +8,7 @@ covariance errors.
 
 import numpy as np
 from dapper.tools.chronos import Chronology
-from dapper.mods.Liu2002 import exp_setup as exp
+from dapper.mods.Pasmans24 import exp_setup as exp
 from dapper.da_methods import LETKF, EnKF, SL_EAKF, E3DVar
 import dapper.tools.localization as loc
 import matplotlib.pyplot as plt
@@ -19,6 +19,9 @@ from scipy.stats import randint
 
 # Directory
 fig_dir = os.path.join(exp.fig_dir, 'localized_covariance_new')
+if not os.path.exists(fig_dir):
+    os.mkdir(fig_dir)
+    os.mkdir(os.path.join(fig_dir,'tree'))
 io = exp.TreeIO(fig_dir, try_loading=True)
 
 # Iterator that creates subensembles.

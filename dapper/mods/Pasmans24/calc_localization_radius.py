@@ -6,7 +6,7 @@ Experiment testing localization width.
 
 import numpy as np 
 from dapper.tools.chronos import Chronology
-from dapper.mods.Liu2002 import exp_setup as exp
+from dapper.mods.Pasmans24 import exp_setup as exp
 from dapper.da_methods import LETKF, EnKF
 import dapper.tools.localization as loc
 import matplotlib.pyplot as plt
@@ -18,6 +18,9 @@ Nens = 8
 order = 4
 #Directory
 fig_dir = os.path.join(exp.fig_dir, 'loc_trial')
+if not os.path.exists(fig_dir):
+    os.mkdir(fig_dir)
+    os.mkdir(os.path.join(fig_dir,'tree'))
 
 
 def lin_localizer(model):

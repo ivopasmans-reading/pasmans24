@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """ Functions that can be patched together into experiment. """
 import numpy as np
-from dapper.mods import Liu2002 as modelling
+from dapper.mods import Pasmans24 as modelling
 from dapper.mods import HiddenMarkovModel, Operator
 from dapper.tools.randvars import RV_from_function, GaussRV
 from dapper.tools.localization import nd_Id_localization
@@ -14,9 +14,8 @@ from mpi4py import MPI
 from abc import ABC, abstractmethod
 
 # Directory to store data and figures.
-fig_dir = ""
-if not os.path.exists(fig_dir):
-    raise Exception("fig_dir must be set.") 
+fig_dir = os.path.abspath(os.getcwd())
+fig_dir = os.path.join(fig_dir,'data')
 # Domain length
 L = 8e6  # m
 # Number of cells

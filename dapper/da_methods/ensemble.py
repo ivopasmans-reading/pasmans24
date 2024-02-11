@@ -111,7 +111,7 @@ class EnKF:
             
             #Run part of the ensemble on one the processes. 
             E1, members1 = scatter(self.mpi, E, members, E1, members1)
-            E1[members1<inan] = HMM.Dyn(E1[members1<inan], t-dt, dt) #ip:, members1[members1<inan])
+            E1[members1<inan] = HMM.Dyn(E1[members1<inan], t-dt, dt) 
             E, members = gather(self.mpi, E1, members1, E, members)        
             
             if self.mpi.is_root:                

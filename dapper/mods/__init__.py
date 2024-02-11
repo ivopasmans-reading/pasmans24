@@ -19,9 +19,10 @@ from dapper.tools.localization import no_localization
 from dapper.tools.matrices import CovMat
 from dapper.tools.randvars import RV, GaussRV
 from dapper.tools.seeding import set_seed
+from dapper.tools.multiproc import NoneMPI
 
 from .integration import with_recursion, with_rk4
-from .utils import Id_Obs, ens_compatible, linspace_int, partial_Id_Obs
+from .utils import Id_Obs, ens_compatible, linspace_int, partial_Id_Obs, var_Id_Obs, model_Obs
 
 
 class HiddenMarkovModel(struct_tools.NicePrint):
@@ -69,7 +70,11 @@ class HiddenMarkovModel(struct_tools.NicePrint):
                      X0=(RV, None),
                      liveplotters=(list, []),
                      sectors=(dict, {}),
-                     name=(str, HiddenMarkovModel._default_name))
+                     name=(str, HiddenMarkovModel._default_name),
+                     )
+        
+        #Default mpi controller.
+        self.mpi = NoneMPI()
 
         # Transfer args to kwargs
         for arg, kw in zip(args, attrs):
@@ -77,7 +82,7 @@ class HiddenMarkovModel(struct_tools.NicePrint):
             kwargs[kw] = arg
 
         # Un-abbreviate
-        abbrevs = {"LP": "liveplotters", "loc": "localizer"}
+        abbrevs = {"LP": "liveplotters", "loc": "localization"}
         for k in list(kwargs):
             try:
                 full = abbrevs[k]
@@ -104,12 +109,13 @@ class HiddenMarkovModel(struct_tools.NicePrint):
         assert kwargs == {}, f"Arguments {list(kwargs)} is/are invalid."
 
         # Further defaults
-        if not hasattr(self.Obs, "localizer"):
-            self.Obs.localizer = no_localization(self.Nx, self.Ny)
+        if not hasattr(self.Obs, "localization") or self.Obs.localization is None:
+            self.Obs.localization = no_localization(self.Nx, self.Ny)
 
         # Validation
         if self.Obs.noise.C == 0 or self.Obs.noise.C.rk != self.Obs.noise.C.M:
             raise ValueError("Rank-deficient R not supported.")
+            
 
     # ndim shortcuts
     @property
@@ -125,20 +131,43 @@ class HiddenMarkovModel(struct_tools.NicePrint):
 
         # Init
         xx    = np.zeros((tseq.K   + 1, Dyn.M))
-        yy    = np.zeros((tseq.Ko+1, Obs.M))
+        yy    = []
 
         x = X0.sample(1)
         xx[0] = x
+        
+        #Flag to activate use of progress bar. 
+        disable_bar = not self.mpi.is_root 
 
         # Loop
-        for k, ko, t, dt in pb.progbar(tseq.ticker, desc):
+        for k, ko, t, dt in pb.progbar(tseq.ticker, desc, disable=disable_bar):
             x = Dyn(x, t-dt, dt)
             x = x + np.sqrt(dt)*Dyn.noise.sample(1)
             if ko is not None:
-                yy[ko] = Obs(x, t) + Obs.noise.sample(1)
+                yy1 = Obs(x,t)
+                yy1 = yy1 + Obs.noise.sample(1)
+                yy.append(np.reshape(yy1,(-1)))
+                
             xx[k] = x
 
         return xx, yy
+    
+    def resample(self, xx, desc='Resampling'):
+        """ Observe the given model trajectory xx. Reruns might use 
+        different observation errors."""
+        Obs, tseq = self.Obs, self.tseq
+        
+        #Init
+        yy    = []
+        
+         # Loop
+        for k, ko, t, dt in pb.progbar(tseq.ticker, desc, disable=True):
+            if ko is not None:
+                yy1 = Obs(xx[k],t)
+                yy1 = yy1 + Obs.noise.sample(1)
+                yy.append(np.reshape(yy1,(-1)))
+
+        return yy
 
     def copy(self):
         return cp.deepcopy(self)
@@ -170,12 +199,17 @@ class Operator(struct_tools.NicePrint):
     """
 
     def __init__(self, M, model=None, noise=None, **kwargs):
-        self.M = M
+          
+        if isinstance(M, (int, np.int32, np.int64)):
+            self.M = M
+        else:
+            raise TypeError("Operator size type {} not recognized.".format(type(M)))
 
         # Default to the Identity operator
         if model is None:
             model = Id_op()
             kwargs['linear'] = lambda *args: np.eye(M)
+            
         # Assign
         self.model = model
 
@@ -195,6 +229,13 @@ class Operator(struct_tools.NicePrint):
             setattr(self, key, value)
 
     def __call__(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
-
+        state = self.model(*args, **kwargs)
+        self.M = np.shape(state)[-1]
+        
+        if hasattr(self.noise,'update'):
+            self.noise.update(state, args[1])
+        else:
+            self.noise.M = self.M
+        
+        return state
     printopts = {'ordering': ['M', 'model', 'noise'], "indent": 4}

@@ -106,7 +106,7 @@ class SpectralModel:
             Random seed used to sample phases of different Fourier components. 
 
         """
-        from scy.signal.windows import hann
+        from scipy.signal.windows import hann
 
         # spacing
         dx = self.L/(2*K+1)

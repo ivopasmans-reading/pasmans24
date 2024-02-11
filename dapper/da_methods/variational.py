@@ -317,9 +317,8 @@ class E3DVar:
                     AbsResidualChecker(10*eps),
                     RankChecker()
                     ]
-        checkers = [IterationsChecker(10)] #IP
+        checkers = [IterationsChecker(10)] 
         rbcg = RCG(Bhat, verbose=False, checkers=checkers, no_stored=2)
-        #rbcg = DirectSolver(Bhat) #IP
 
         return rbcg
 

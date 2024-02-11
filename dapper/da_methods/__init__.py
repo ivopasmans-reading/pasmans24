@@ -100,17 +100,17 @@ def da_method(*default_dataclasses):
         cls = dataclass(cls)
 
         # Define the new assimilate method (has bells and whistles)
-        def assimilate(self, HMM, xx, yy, desc=None, fail_gently=False, **stat_kwargs):
+        def assimilate(self, HMM, xx, yy, desc=None, fail_gently=False, output=None, **stat_kwargs):
             # Progressbar name
             pb_name_hook = self.da_method if desc is None else desc # noqa
 
-            # Init stats
+            # Init 
             self.stats = dapper.stats.Stats(self, HMM, xx, yy, **stat_kwargs)
 
             # Assimilate
             time0 = time.time()
             try:
-                _assimilate(self, HMM, xx, yy)
+                output = _assimilate(self, HMM, xx, yy)
             except Exception as ERR:
                 if fail_gently:
                     self.crashed = True
@@ -121,6 +121,8 @@ def da_method(*default_dataclasses):
                     # crop out errors in the DAPPER infrastructure itself.
                     raise
             self.stat("duration", time.time()-time0)
+            
+            return output
 
         # Overwrite the assimilate method with the new one
         try:
@@ -196,4 +198,4 @@ from .ensemble import LETKF, SL_EAKF, EnKF, EnKF_N, EnKS, EnRTS
 from .extended import ExtKF, ExtRTS
 from .other import LNETF, RHF
 from .particle import OptPF, PartFilt, PFa, PFxN, PFxN_EnKF
-from .variational import Var4D, iEnKS
+from .variational import Var4D, iEnKS, E3DVar
